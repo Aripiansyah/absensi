@@ -1,12 +1,37 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import type { CSSProperties } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { db } from './firebaseConfig.ts';
 import { collection, query, where, onSnapshot, getDocs, orderBy, limit } from 'firebase/firestore';
 
+interface Absensi {
+  id: string;
+  nim: string;
+  nama: string;
+  kelas: string;
+  jamAbsen: string;
+  status: string;
+  [key: string]: any;
+}
+
+interface Stats {
+  totalMahasiswa: number;
+  hadirHariIni: number;
+  terlambatHariIni: number;
+  alfaHariIni: number;
+}
+
+interface ChartDataItem {
+  hari: string;
+  Hadir: number;
+  Terlambat: number;
+  Alfa: number;
+}
+
 export default function Dashboard() {
-  const [stats, setStats] = useState({ totalMahasiswa: 0, hadirHariIni: 0, terlambatHariIni: 0, alfaHariIni: 0 });
-  const [chartData, setChartData] = useState([]);
-  const [recentAbsen, setRecentAbsen] = useState([]);
+  const [stats, setStats] = useState<Stats>({ totalMahasiswa: 0, hadirHariIni: 0, terlambatHariIni: 0, alfaHariIni: 0 });
+  const [chartData, setChartData] = useState<ChartDataItem[]>([]);
+  const [recentAbsen, setRecentAbsen] = useState<Absensi[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -26,10 +51,10 @@ export default function Dashboard() {
         );
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
-          const absensiData = snapshot.docs.map(doc => ({
+          const absensiData: Absensi[] = snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
-          }));
+          })) as Absensi[];
 
           // Hitung statistik hari ini
           let hadir = 0, terlambat = 0, alfa = 0;
@@ -70,7 +95,7 @@ export default function Dashboard() {
   }, []);
 
   // Fungsi untuk ambil data mingguan
-  const getWeeklyData = async () => {
+  const getWeeklyData = async (): Promise<ChartDataItem[]> => {
     const today = new Date();
     const weekData: Record<string, Record<string, number>> = {};
 
@@ -93,7 +118,7 @@ export default function Dashboard() {
       let hadir = 0, terlambat = 0, alfa = 0;
 
       snapshot.forEach(doc => {
-        const data = doc.data();
+        const data = doc.data() as Absensi;
         if (data.status === 'Hadir') hadir++;
         if (data.status === 'Terlambat') terlambat++;
         if (data.status === 'Alfa') alfa++;
@@ -103,7 +128,12 @@ export default function Dashboard() {
     }
 
     // Format data untuk chart
-    return Object.entries(weekData).map(([hari, data]) => ({ hari, ...data })).reverse();
+    return Object.entries(weekData).map(([hari, data]) => ({ 
+      hari, 
+      Hadir: data.Hadir, 
+      Terlambat: data.Terlambat, 
+      Alfa: data.Alfa 
+    })).reverse();
   };
 
   if (loading) {
@@ -126,7 +156,7 @@ export default function Dashboard() {
         </div>
         <div style={{ ...styles.card, borderLeft: '5px solid #f59e0b' }}>
           <h3>Terlambat</h3>
-          <p style={styles.cardValue}>{stats.terlambatMenit || stats.terlambatHariIni}</p>
+          <p style={styles.cardValue}>{stats.terlambatHariIni}</p>
         </div>
         <div style={{ ...styles.card, borderLeft: '5px solid #ef4444' }}>
           <h3>Alfa</h3>
@@ -168,7 +198,7 @@ export default function Dashboard() {
             </tr>
           </thead>
           <tbody>
-            {recentAbsen.map((absen: any) => (
+            {recentAbsen.map((absen) => (
               <tr key={absen.id} style={styles.tr}>
                 <td style={styles.td}>{absen.nim}</td>
                 <td style={styles.td}>{absen.nama}</td>
@@ -192,8 +222,8 @@ export default function Dashboard() {
   );
 }
 
-// Inline CSS Styles untuk kemudahan penggunaan langsung
-const styles = {
+// Inline CSS Styles dengan proper typing
+const styles: Record<string, CSSProperties> = {
   container: { padding: '24px', fontFamily: 'Arial, sans-serif', backgroundColor: '#f8fafc', minHeight: '100vh' },
   title: { fontSize: '24px', fontWeight: 'bold', marginBottom: '24px', color: '#1e293b' },
   sectionTitle: { fontSize: '18px', fontWeight: '600', marginBottom: '16px', color: '#334155' },
@@ -202,11 +232,11 @@ const styles = {
   cardValue: { fontSize: '28px', fontWeight: 'bold', margin: '8px 0 0 0', color: '#0f172a' },
   chartSection: { backgroundColor: '#ffffff', padding: '24px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '32px' },
   tableSection: { backgroundColor: '#ffffff', padding: '24px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },
-  table: { width: '100%', borderCollapse: 'collapse', textAlign: 'left' },
+  table: { width: '100%', borderCollapse: 'collapse' as const, textAlign: 'left' },
   thRow: { backgroundColor: '#f1f5f9' },
   th: { padding: '12px', color: '#475569', borderBottom: '1px solid #e2e8f0', fontWeight: '600' },
   td: { padding: '12px', borderBottom: '1px solid #e2e8f0', color: '#334155' },
-  tr: { '&:hover': { backgroundColor: '#f8fafc' } },
-  badge: { padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '500' },
+  tr: { cursor: 'pointer', transition: 'background-color 0.2s' },
+  badge: { padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '500', display: 'inline-block' },
   loading: { display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '18px' }
 };
