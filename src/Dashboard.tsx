@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { db } from './firebaseConfig.js';
+import { db } from './firebaseConfig.ts';
 import { collection, query, where, onSnapshot, getDocs, orderBy, limit } from 'firebase/firestore';
 
 export default function Dashboard() {
@@ -72,7 +72,7 @@ export default function Dashboard() {
   // Fungsi untuk ambil data mingguan
   const getWeeklyData = async () => {
     const today = new Date();
-    const weekData = {};
+    const weekData: Record<string, Record<string, number>> = {};
 
     // Hari-hari dalam seminggu
     const hari = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
@@ -168,7 +168,7 @@ export default function Dashboard() {
             </tr>
           </thead>
           <tbody>
-            {recentAbsen.map((absen) => (
+            {recentAbsen.map((absen: any) => (
               <tr key={absen.id} style={styles.tr}>
                 <td style={styles.td}>{absen.nim}</td>
                 <td style={styles.td}>{absen.nama}</td>
